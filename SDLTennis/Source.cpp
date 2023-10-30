@@ -1,5 +1,6 @@
 #include <SDL.h>
 #include <iostream>
+#include <string>
 
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGTH = 480;
@@ -11,12 +12,12 @@ const int PLAYER_DEPTH = 50;
 const float PLAYER_SPEED = 0.2f;
 
 const int BALL_SIZE = 10;
-const float STARTING_BALL_SPEED = 0.1f;
+const float STARTING_BALL_SPEED = 0.05f;
 
 // Ball class that is basically a rectangle that moves
 class Ball {
 public:
-	float velocity[2] = {STARTING_BALL_SPEED, STARTING_BALL_SPEED};
+	float velocity[2] = {-STARTING_BALL_SPEED, STARTING_BALL_SPEED};
 	float fractionalMove[2] = { 0.0f, 0.0f };
 	SDL_Rect rect = { SCREEN_WIDTH / 2, 100, BALL_SIZE, BALL_SIZE };
 };
@@ -24,13 +25,23 @@ public:
 // Player class that is also basically a rectangle that moves
 class Player {
 public:
+	int score = 0;
 	float velocity = 0.0f;
 	float fractionalMove = 0.0f;
 	SDL_Rect rect = { 100, SCREEN_HEIGTH / 2, PLAYER_WIDTH, PLAYER_HEIGHT };
 };
 
-SDL_Texture* LoadTexture(SDL_Surface* surface, SDL_Renderer* renderer) {
+SDL_Texture* GetNumberTexture(int number) {
+}
+
+SDL_Texture* LoadTexture(std::string filePath, SDL_Renderer* renderer) {
+
+	SDL_Surface* surface = SDL_LoadBMP(filePath.c_str());
+
 	SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+	SDL_FreeSurface(surface);
+
 	return texture;
 }
 
@@ -163,6 +174,51 @@ int main(int argc, char* args[])
 			ball.rect.y -= 1;
 			ball.fractionalMove[1] = 0;
 		}
+
+		// Checking for ball touching:
+		// players[0] (LHS)
+		int playerX = players[0].rect.x + players[0].rect.w;
+		for (int h = 0; h <= players[0].rect.h; h++) {
+			int playerY = players[0].rect.y + h;
+			for (int x = 0; x <= ball.rect.w; x++) {
+				for (int y = 0; y <= ball.rect.h; y++) {
+					int ballX = x + ball.rect.x;
+					int ballY = y + ball.rect.y;
+
+					if (ballX == playerX && ballY == playerY)
+						ball.velocity[0] = abs(ball.velocity[0]);
+				}
+			}
+		}
+		// players[1] (RHS)
+		playerX = players[1].rect.x + players[1].rect.w;
+		for (int h = 0; h <= players[1].rect.h; h++) {
+			int playerY = players[1].rect.y + h;
+			for (int x = 0; x <= ball.rect.w; x++) {
+				for (int y = 0; y <= ball.rect.h; y++) {
+					int ballX = x + ball.rect.x;
+					int ballY = y + ball.rect.y;
+
+					if (ballX == playerX && ballY == playerY)
+						ball.velocity[0] = -abs(ball.velocity[0]);
+				}
+			}
+		}
+		// Edge collision
+		for (int x = 0; x <= ball.rect.w; x++) {
+			for (int y = 0; y <= ball.rect.h; y++) {
+				int ballX = x + ball.rect.x;
+				int ballY = y + ball.rect.y;
+
+				if(ballY > SCREEN_HEIGTH)
+					ball.velocity[1] = -abs(ball.velocity[1]);
+				else if(ballY < 0)
+					ball.velocity[1] = abs(ball.velocity[1]);
+			}
+		}
+
+		ball.velocity[0] *= 1.00001;
+		ball.velocity[1] *= 1.00001;
 
 		SDL_RenderFillRect(renderer, &ball.rect);
 
